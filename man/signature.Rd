@@ -8,7 +8,7 @@
 Not Available
 }
 \source{
-\url{http://202.97.205.69/CancerSEA/}
+\url{http://biocc.hrbmu.edu.cn/CancerSEA/}
 }
 \usage{
 signature

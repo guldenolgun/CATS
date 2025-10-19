@@ -14,14 +14,14 @@
 
 #' List of signature genes
 #' @format Not Available
-#' @source \url{http://202.97.205.69/CancerSEA/}
+#' @source \url{http://biocc.hrbmu.edu.cn/CancerSEA/}
 #' @examples
 #' data(signature)
 "signature"
 
 #' Human PPI network
 #' @format Not Available
-#' @source \url{http://202.97.205.69/CancerSEA/}
+#' @source \url{https://doi.org/10.1038/s41540-017-0005-4}
 #' @examples
 #' data(signature)
 "human_PPIN"

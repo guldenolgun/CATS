@@ -46,11 +46,6 @@ context.
 
 To install and load CATS:
 
-
-```{r, include=FALSE}
-devtools::load_all(".")
-```
-
 ```{r Install, eval=FALSE, echo=TRUE, include=TRUE}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
