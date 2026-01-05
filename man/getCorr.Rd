@@ -12,8 +12,11 @@ getCorr(
 )
 }
 \arguments{
-\item{geneExp}{Gene by sample expression matrix. The first column of this
-matrix should be gene names.}
+\item{geneExp}{Gene by sample expression matrix or SummarizedExperiment
+that includes both gene names and gene expression profile.
+The first column of this matrix should be gene names. For
+SummarizedExperiment, gene names must be provided as
+rownames(geneExp)}
 
 \item{sizeOfSampling}{Sampling Size. By default, it is 2000}
 

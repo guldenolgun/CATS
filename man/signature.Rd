@@ -17,6 +17,6 @@ signature
 List of signature genes
 }
 \examples{
-data(signature)
+data(signature, package = 'CATS')
 }
 \keyword{datasets}

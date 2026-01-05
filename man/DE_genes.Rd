@@ -17,6 +17,6 @@ DE_genes
 List of genes that are differentially expressed in TCGA brain RNASeq
 }
 \examples{
-data(DE_genes)
+data(DE_genes, package = 'CATS')
 }
 \keyword{datasets}

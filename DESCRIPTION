@@ -8,9 +8,9 @@ Authors@R: c(person("Gulden", "Olgun",
 Description: Gene signature refers to a set of genes whose expression characterizes the activity of a specific biological process or a cell state, e.g., EMT, proliferation, stemness, etc. Gene signatures are widely used to infer the state of a biological system based on transcriptomic data. However, the available gene signatures lack tissue or cellular context. Here, we developed a tool - CATS (Cancer Specific Transcriptomic Signature) which, given a hallmark (or any other) context-agnostic reference geneset, and a specific cancer context, aims to identify a partially overlapping geneset that is likely to represent the activity of the hallmark process in the specific context. Such a contextualization, or mapping, is based on three premises: (1) preferential connectivity to the reference geneset in the PPI, (2) preferential co-expression with the reference geneset in the specific context, and additionally (3) differential upregulation of the gene in the particular context. 
 License: MIT + file LICENSE
 Depends: R (>= 4.4.0)
-Imports: WGCNA, stats
+Imports: WGCNA, stats, SummarizedExperiment
 Encoding: UTF-8
-biocViews: BasicWorkflow
+biocViews: GeneExpression, Transcriptomics, GeneSetEnrichment, StatisticalMethod
 URL: https://github.com/guldenolgun/CATS
 RoxygenNote: 7.3.2
 BugReports: https://github.com/guldenolgun/CATS/issues
@@ -21,3 +21,4 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+LazyData: true

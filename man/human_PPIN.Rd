@@ -17,6 +17,6 @@ human_PPIN
 Human PPI network
 }
 \examples{
-data(signature)
+data(human_PPIN, package = 'CATS')
 }
 \keyword{datasets}

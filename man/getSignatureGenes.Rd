@@ -10,8 +10,11 @@ getSignatureGenes(signature, geneExp)
 \arguments{
 \item{signature}{Data frame formatted signature gene list}
 
-\item{geneExp}{Gene by sample expression matrix. The first column of this
-matrix should be gene names.}
+\item{geneExp}{Gene by sample expression matrix or SummarizedExperiment
+that includes both gene names and gene expression profiles.
+The first column of the expression matrix should be gene
+names. For SummarizedExperiment, gene names must be provided
+ as rownames(geneExp)}
 }
 \value{
 Returns signature and rest of the genes' expression matrix as a

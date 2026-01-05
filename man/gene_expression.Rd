@@ -17,6 +17,6 @@ gene_expression
 Subset of gene expressions in TCGA brain RNASeq data
 }
 \examples{
-data(gene_expression)
+data(gene_expression, package = 'CATS')
 }
 \keyword{datasets}

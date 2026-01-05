@@ -59,6 +59,14 @@ To load the CATS:
 library(CATS)
 ```
 
+To load the data:
+```{r dataLoad, eval=TRUE, echo=TRUE, include=TRUE}
+data("gene_expression", package = "CATS")
+data("DE_genes",        package = "CATS")
+data("signature",       package = "CATS")
+data("human_PPIN",      package = "CATS")
+```
+
 Moreover, CATS can be downloaded from the [GitHub repository]
 (https://github.com/guldenolgun/CATS). 
 

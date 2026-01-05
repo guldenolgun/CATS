@@ -2,8 +2,11 @@
 #' expression
 #'
 #' @param signature Data frame formatted signature gene list
-#' @param geneExp Gene by sample expression matrix. The first column of this
-#'                matrix should be gene names.
+#' @param geneExp Gene by sample expression matrix or SummarizedExperiment
+#'                  that includes both gene names and gene expression profiles.
+#'                  The first column of the expression matrix should be gene
+#'                  names. For SummarizedExperiment, gene names must be provided
+#'                   as rownames(geneExp)
 #'
 #' @return Returns signature and rest of the genes' expression matrix as a
 #'        list
@@ -12,10 +15,17 @@
 #' step0 <- getSignatureGenes(signature, gene_expression)
 #'
 #' @importFrom stats na.omit
+#' @importFrom SummarizedExperiment assay
 #' @importFrom stats quantile
 #'
 #' @export
 getSignatureGenes <- function(signature, geneExp) {
+    if (inherits(geneExp, "SummarizedExperiment")) {
+         genes <- rownames(geneExp)
+         geneExp <- data.frame(genes, assay(geneExp))
+    } else {
+        geneExp <- geneExp
+    }
     geneExp <- na.omit(geneExp)
     signature <- data.frame(signature)
     geneExp <- data.frame(geneExp)
@@ -28,8 +38,11 @@ getSignatureGenes <- function(signature, geneExp) {
 
 #' PREPARATION: Finds the correlation cut-off for the STEP 2
 #'
-#' @param geneExp Gene by sample expression matrix. The first column of this
-#'                matrix should be gene names.
+#' @param geneExp Gene by sample expression matrix or SummarizedExperiment
+#'                  that includes both gene names and gene expression profile.
+#'                  The first column of this matrix should be gene names. For
+#'                  SummarizedExperiment, gene names must be provided as
+#'                  rownames(geneExp)
 #' @param sizeOfSampling Sampling Size. By default, it is 2000
 #' @param quantileCut The cut-off that is based on the percentile of randomly
 #'                    sampled gene pairs. By default, it is 0.99.
@@ -46,45 +59,54 @@ getSignatureGenes <- function(signature, geneExp) {
 #'
 #' @importFrom stats na.omit
 #' @importFrom stats quantile
+#' @importFrom SummarizedExperiment assay
 #' @export
 getCorr <-
     function(geneExp,
-            sizeOfSampling = 2000,
-            quantileCut = 0.99,
-            samplingGenes = TRUE) {
-    geneExp <- na.omit(geneExp)
-    corrMat <- data.frame()
-    count <- 1
-    if (samplingGenes) {
-        inn <- sample(seq_len(dim(geneExp)[1]), size = sizeOfSampling,
-                    replace = FALSE)
-        for (i in seq_len(sizeOfSampling / 2)) {
-            for (j in ((sizeOfSampling / 2) + 1):sizeOfSampling) {
-                corrMat[count, 1] <- cor(t(geneExp[inn[i], ]),
-                                        t(geneExp[inn[j], ]))
-                count <- count + 1
+             sizeOfSampling = 2000,
+             quantileCut = 0.99,
+             samplingGenes = TRUE) {
+
+        if (inherits(geneExp, "SummarizedExperiment")) {
+            genes <- rownames(geneExp)
+            geneExp <- data.frame(genes, assay(geneExp))
+        } else {
+            geneExp <- geneExp
+        }
+        geneExp <- na.omit(geneExp)
+        corrMat <- data.frame()
+        count <- 1
+        if (samplingGenes) {
+            inn <- sample(seq_len(dim(geneExp)[1]), size = sizeOfSampling,
+                          replace = FALSE)
+            for (i in seq_len(sizeOfSampling / 2)) {
+                for (j in ((sizeOfSampling / 2) + 1):sizeOfSampling) {
+                    corrMat[count, 1] <- cor(t(geneExp[inn[i], ]),
+                                             t(geneExp[inn[j], ]))
+                    count <- count + 1
+                }
+            }
+        } else{
+            geneExp <- geneExp[, -1]
+            if (sizeOfSampling <= dim(geneExp)[2]) {
+                inn <- sample(seq_len(dim(geneExp)[2]), size = sizeOfSampling,
+                              replace = FALSE)
+            } else{
+                inn <- sample(seq_len(dim(geneExp)[2]), size = sizeOfSampling,
+                              replace = TRUE)
+            }
+
+            for (i in seq_len(sizeOfSampling / 2)) {
+                for (j in ((sizeOfSampling / 2) + 1):sizeOfSampling) {
+                    corrMat[count, 1] <- cor((geneExp[, inn[i]]),
+                                             (geneExp[, inn[j]]))
+                    count <- count + 1
+                }
             }
         }
-    } else{
-        geneExp <- geneExp[, -1]
-        if (sizeOfSampling <= dim(geneExp)[2]) {
-            inn <- sample(seq_len(dim(geneExp)[2]), size = sizeOfSampling,
-                            replace = FALSE)
-    } else{
-        inn <- sample(seq_len(dim(geneExp)[2]), size = sizeOfSampling,
-                        replace = TRUE)
-    }
 
-    for (i in seq_len(sizeOfSampling / 2)) {
-        for (j in ((sizeOfSampling / 2) + 1):sizeOfSampling) {
-            corrMat[count, 1] <- cor((geneExp[, inn[i]]), (geneExp[, inn[j]]))
-            count <- count + 1
-        }
+        return(quantile(corrMat[, 1], na.rm = TRUE, quantileCut))
     }
-    }
-
-    return(quantile(corrMat[, 1], na.rm = TRUE, quantileCut))
-}
 
 #' STEP 1: Context agnostic network expansion
 #'
@@ -111,43 +133,43 @@ getCorr <-
 #' @export
 ContextAgnosticExpansion <-
     function(expressionList,
-            PPI,
-            pCut = 0.05,
-            FCCut = 3) {
-    signt <- expressionList[[1]]
-    notsignt <- expressionList[[2]]
+             PPI,
+             pCut = 0.05,
+             FCCut = 3) {
+        signt <- expressionList[[1]]
+        notsignt <- expressionList[[2]]
 
-    ppi_genes <- rbind(data.frame(a = unlist(PPI[, 1])),
-                        data.frame(a = unlist(PPI[, 2])))
-    ppi_genes <- unique(ppi_genes)
+        ppi_genes <- rbind(data.frame(a = unlist(PPI[, 1])),
+                           data.frame(a = unlist(PPI[, 2])))
+        ppi_genes <- unique(ppi_genes)
 
-    PPI_FC <- data.frame()
-    for (i in seq_len(dim(ppi_genes)[1])) {
-        if (!is.element(ppi_genes[i, 1], signt[,1])) {
-        gen_Inte <- c(unlist(PPI[which(
-            unlist(PPI[, 1]) %in% ppi_genes[i, 1]), 2]),
-            unlist(PPI[which(
-            unlist(PPI[, 2]) %in% ppi_genes[i, 1]), 1]))
-        aa <-  length(intersect(gen_Inte, signt[,1]))
-        bb <- length(intersect(gen_Inte, notsignt[,1]))
-        if ((aa / dim(signt)[1]) >= pCut) {
-            PPI_FC[i, 1] <- ((aa / dim(signt)[1])) / ((bb / length(
-            intersect(ppi_genes$a, notsignt[,1])
-        )))
+        PPI_FC <- data.frame()
+        for (i in seq_len(dim(ppi_genes)[1])) {
+            if (!is.element(ppi_genes[i, 1], signt[,1])) {
+                gen_Inte <- c(unlist(PPI[which(
+                    unlist(PPI[, 1]) %in% ppi_genes[i, 1]), 2]),
+                    unlist(PPI[which(
+                        unlist(PPI[, 2]) %in% ppi_genes[i, 1]), 1]))
+                aa <-  length(intersect(gen_Inte, signt[,1]))
+                bb <- length(intersect(gen_Inte, notsignt[,1]))
+                if ((aa / dim(signt)[1]) >= pCut) {
+                    PPI_FC[i, 1] <- ((aa / dim(signt)[1])) / ((bb / length(
+                        intersect(ppi_genes$a, notsignt[,1])
+                    )))
+                }
+            }
         }
-    }
-    }
 
-    potenGenes <- ppi_genes[which(PPI_FC$V1 >= FCCut), ]
-    potenGenes <- intersect(potenGenes,
-                            c(expressionList[[1]][,1],
-                            expressionList[[2]][,1]))
+        potenGenes <- ppi_genes[which(PPI_FC$V1 >= FCCut), ]
+        potenGenes <- intersect(potenGenes,
+                                c(expressionList[[1]][,1],
+                                  expressionList[[2]][,1]))
 
-    index <- match(intersect(potenGenes, notsignt$gene), notsignt$gene)
-    signt_new <- rbind(signt, notsignt[index, ])
-    notsignt_new <- notsignt[-index, ]
-    return(list(signt_new, notsignt_new))
-}
+        index <- match(intersect(potenGenes, notsignt$gene), notsignt$gene)
+        signt_new <- rbind(signt, notsignt[index, ])
+        notsignt_new <- notsignt[-index, ]
+        return(list(signt_new, notsignt_new))
+    }
 
 #' STEP 2: Context-specific network expansion
 #'
@@ -181,32 +203,33 @@ ContextAgnosticExpansion <-
 #' @export
 ContextSpecificExpansion <-
     function(expressionList,
-            corCutOff = 0.3,
-            FCCut = 3,
-            fracCut = 0.05,
-            nThread = 5) {
-    signt_new <- expressionList[[1]]
-    notsignt_new <- expressionList[[2]]
+             corCutOff = 0.3,
+             FCCut = 3,
+             fracCut = 0.05,
+             nThread = 5) {
+        signt_new <- expressionList[[1]]
+        notsignt_new <- expressionList[[2]]
 
-    FC <- data.frame()
-    for (i in seq_len(dim(notsignt_new)[1])) {
-        aa <- WGCNA::cor(t(notsignt_new[i, 2:dim(notsignt_new)[2]]),
-                        t(signt_new[, 2:dim(signt_new)[2]]), nThreads = nThread)
-        leng_aa <- length(which((aa) >= corCutOff))
-        if ((leng_aa / dim(signt_new)[1]) >= fracCut) {
-        bb <- WGCNA::cor(t(notsignt_new[i, 2:dim(notsignt_new)[2]]),
-                        t(notsignt_new[, 2:dim(notsignt_new)[2]]),
-                        nThreads = nThread)
-        leng_bb <- length(which((bb) >= corCutOff))
-        FC[i, 1] <- (leng_aa / dim(signt_new)[1]) /
+        FC <- data.frame()
+        for (i in seq_len(dim(notsignt_new)[1])) {
+            aa <- WGCNA::cor(t(notsignt_new[i, 2:dim(notsignt_new)[2]]),
+                             t(signt_new[, 2:dim(signt_new)[2]]),
+                             nThreads = nThread)
+            leng_aa <- length(which((aa) >= corCutOff))
+            if ((leng_aa / dim(signt_new)[1]) >= fracCut) {
+                bb <- WGCNA::cor(t(notsignt_new[i, 2:dim(notsignt_new)[2]]),
+                                 t(notsignt_new[, 2:dim(notsignt_new)[2]]),
+                                 nThreads = nThread)
+                leng_bb <- length(which((bb) >= corCutOff))
+                FC[i, 1] <- (leng_aa / dim(signt_new)[1]) /
                     ((leng_bb / dim(notsignt_new)[1]))
-    }
-    }
+            }
+        }
 
-    expand_gene <- c(signt_new[,1], notsignt_new[,1][which(FC$V1 >= FCCut)])
+        expand_gene <- c(signt_new[,1], notsignt_new[,1][which(FC$V1 >= FCCut)])
 
-    return(expand_gene)
-}
+        return(expand_gene)
+    }
 
 #' STEP 3: Pruning
 #'
@@ -227,7 +250,10 @@ ContextSpecificExpansion <-
 #'
 #' @export
 getDEgenes <- function(geneList, DESet) {
-    return(intersect(geneList, DESet))
+    if(is.data.frame(DE_genes))
+        return(intersect(geneList, DESet[,1][[1]]))
+    else
+        return(intersect(geneList, DESet))
 }
 
 #' The pipeline for the CATS.
@@ -278,9 +304,9 @@ runCATS <- function(signature,
                     nThread = 5) {
     step0 <- getSignatureGenes(signature = signature, geneExp = geneExp)
     step1 <- ContextAgnosticExpansion(expressionList = step0,
-        PPI = PPI,
-        pCut = pCut,
-        FCCut = step1_FCCut)
+                                      PPI = PPI,
+                                      pCut = pCut,
+                                      FCCut = step1_FCCut)
     step2 <- ContextSpecificExpansion(
         expressionList = step1,
         corCutOff = corCutOff,
