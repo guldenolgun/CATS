@@ -1,5 +1,134 @@
-# CATS
-Gene signature refers to a set of genes whose expression characterizes the activity of a specific biological process or a cell state, e.g., EMT, proliferation, stemness, etc. Gene signatures are widely used to infer the state of a biological system based on transcriptomic data. However, the available gene signatures generally lack tissue or cellular context. For instance, a stemness signature derived from one tissue context may not be perfectly applicable to another tissue context. Across tissues, overlapping yet distinct sets of genes are likely to mediate a specific biological process. 
+Cancer Specific Transcriptomic Signature (CATS)
+================
 
-Here, we identify the context-specific gene sets while expanding the network using context-specific and context-agnostic signature sets. Our methodology consists of 3 steps. Each step can be run separately, allowing the user to create their pipeline, or in a combined fashion. 
+## General Information
 
+Gene signature refers to a set of genes whose expression characterizes
+the activity of a specific biological process or a cell state, e.g.,
+EMT, proliferation, stemness, etc. Gene signatures are widely used to
+infer the state of a biological system based on transcriptomic data.
+However, the available gene signatures lack tissue or cellular context.
+Here, we developed a tool - CATS (Cancer Specific Transcriptomic
+Signature) which, given a hallmark (or any other) context-agnostic
+reference geneset, and a specific cancer context, aims to identify a
+partially overlapping geneset that is likely to represent the activity
+of the hallmark process in the specific context. Such a
+contextualization, or mapping, is based on three premises: (1)
+preferential connectivity to the reference geneset in the PPI, (2)
+preferential co-expression with the reference geneset in the specific
+context, and additionally (3) differential upregulation of the gene in
+the particular context.
+
+## Installation
+
+To install and load CATS:
+
+``` r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("CATS")
+```
+
+To load the CATS:
+
+``` r
+library(CATS)
+```
+
+To load the data:
+
+``` r
+data("gene_expression", package = "CATS")
+data("DE_genes",        package = "CATS")
+data("signature",       package = "CATS")
+data("human_PPIN",      package = "CATS")
+```
+
+Moreover, CATS can be downloaded from the \[GitHub repository\]
+(<https://github.com/guldenolgun/CATS>).
+
+## Running the pipeline step-by-step
+
+### Step 0: Data preparation
+
+In this step, we need to separate the signature gene expression from the
+rest of the gene expression.
+
+``` r
+step0 <- getSignatureGenes(signature, gene_expression)
+```
+
+### Step 1: Context-Agnostic Expansion
+
+Given the signature geneset and the PPI network, for each gene g not in
+signature geneset, we calculated the ratio between the fraction of genes
+in the signature gene set that are connected with g and the fraction of
+genes genome-wide that are connected with g. If the ratio is \>= `FCCut`
+parameter and the g is connected to at least `pCut` parameter of the
+given signature set, we include gene g into a new expanded set called
+Sig-PPI-Expanded.
+
+``` r
+step1 <- ContextAgnosticExpansion(expressionList = step0, 
+                                    PPI = human_PPIN,  
+                                    pCut = 0.001, 
+                                    FCCut = 0.2)
+```
+
+### Step 2: Context-Specific Expansion
+
+To construct a network based on gene-gene correlation, for a given
+cancer cohort, the correlation cut-off is based on the percentile that
+the user provided in the `quantileCut` parameter of randomly sampled
+(sampling number is controlled by the `sizeOfSampling` parameter) gene
+pairs must be calculated and constructed a co-expression network based
+on this threshold.
+
+``` r
+corr_cut <- getCorr(geneExp = gene_expression, 
+                    sizeOfSampling = 100,
+                    quantileCut = 0.95)
+```
+
+Similar to the step 1, for each gene g that is not in Sig-PPI-Expanded,
+the user should calculate the ratio between the fraction of genes in
+Sig-PPI-Expanded that are connected with g and the fraction of genes
+genome-wide that are connected with g. If the ratio is \>= `FCCut` and
+the g is connected to at least `pCut` parameter of Sig-PPI-Expanded, we
+include gene g into a new expanded set called Sig-PPI-CoExp-Expanded.
+
+``` r
+step2 <- ContextSpecificExpansion(expressionList = step1, 
+                                    corCutOff = 0.3, 
+                                    FCCut = 3, 
+                                    fracCut = 0.05, 
+                                    nThread = 5)
+```
+
+### Step 3: Pruning
+
+Finally, the user can prune the Sig-PPI-CoExp-Expanded by retaining only
+the differentially expressed genes which is controlled by `DESet`.
+
+``` r
+step3 <- getDEgenes(geneList = step2, DESet = DE_genes)
+```
+
+## Running the whole pipeline
+
+The user can run the whole pipeline by calling `runCATS` function.
+
+``` r
+result <- runCATS(signature = signature, 
+                    geneExp = gene_expression, 
+                    PPI = human_PPIN, 
+                    DESet = DE_genes,
+                    pCut = 0.01)
+```
+
+## Session Info
+
+``` r
+sessionInfo()
+```
