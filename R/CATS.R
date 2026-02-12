@@ -21,10 +21,24 @@
 #' @export
 getSignatureGenes <- function(signature, geneExp) {
     if (inherits(geneExp, "SummarizedExperiment")) {
-         genes <- rownames(geneExp)
-         geneExp <- data.frame(genes, assay(geneExp))
-    } else {
+        mat <- SummarizedExperiment::assay(geneExp)
+        genes <- rownames(geneExp)
+        if (is.null(genes)) genes <- rownames(mat)
+        if (is.null(genes)) stop("For SummarizedExperiment, gene names must be in rownames(geneExp) or rownames(assay(geneExp)).")
+        geneExp <- data.frame(gene = genes, mat, check.names = FALSE)
+    }else {
         geneExp <- geneExp
+    }
+    if (!is.data.frame(signature)) {
+        stop("`signature` must be a data.frame formatted signature gene list.")
+    }
+    ok_geneExp <-
+        is.matrix(geneExp) ||
+        is.data.frame(geneExp) ||
+        inherits(geneExp, "SummarizedExperiment")
+
+    if (!ok_geneExp) {
+        stop("`geneExp` must be a matrix/data.frame or a SummarizedExperiment.")
     }
     geneExp <- na.omit(geneExp)
     signature <- data.frame(signature)
@@ -74,15 +88,17 @@ getCorr <-
             geneExp <- geneExp
         }
         geneExp <- na.omit(geneExp)
+        expr <- geneExp
+        if (is.data.frame(expr)) expr <- expr[, -1, drop = FALSE]
         corrMat <- data.frame()
         count <- 1
         if (samplingGenes) {
-            inn <- sample(seq_len(dim(geneExp)[1]), size = sizeOfSampling,
+            inn <- sample(seq_len(dim(expr)[1]), size = sizeOfSampling,
                           replace = FALSE)
             for (i in seq_len(sizeOfSampling / 2)) {
                 for (j in ((sizeOfSampling / 2) + 1):sizeOfSampling) {
-                    corrMat[count, 1] <- cor(t(geneExp[inn[i], ]),
-                                             t(geneExp[inn[j], ]))
+                    corrMat[count, 1] <- cor(t(expr[inn[i], ]),
+                                             t(expr[inn[j], ]))
                     count <- count + 1
                 }
             }
@@ -138,6 +154,8 @@ ContextAgnosticExpansion <-
              FCCut = 3) {
         signt <- expressionList[[1]]
         notsignt <- expressionList[[2]]
+
+        if (nrow(signt) == 0) stop("Signature gene set is empty after Step 0.")
 
         ppi_genes <- rbind(data.frame(a = unlist(PPI[, 1])),
                            data.frame(a = unlist(PPI[, 2])))
@@ -250,7 +268,7 @@ ContextSpecificExpansion <-
 #'
 #' @export
 getDEgenes <- function(geneList, DESet) {
-    if(is.data.frame(DE_genes))
+    if(is.data.frame(DESet))
         return(intersect(geneList, DESet[,1][[1]]))
     else
         return(intersect(geneList, DESet))
@@ -302,6 +320,10 @@ runCATS <- function(signature,
                     step2_FCCut = 3,
                     fracCut = 0.05,
                     nThread = 5) {
+    if (!is.numeric(pCut) || length(pCut) != 1 || is.na(pCut) || pCut < 0 || pCut > 1) {
+        stop("`pCut` must be a single numeric value in [0, 1].")
+    }
+
     step0 <- getSignatureGenes(signature = signature, geneExp = geneExp)
     step1 <- ContextAgnosticExpansion(expressionList = step0,
                                       PPI = PPI,

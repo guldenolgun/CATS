@@ -130,7 +130,7 @@ differentially expressed genes which is controlled by `DESet`.
 step3 <- getDEgenes(geneList = step2, DESet = DE_genes)
 ```
 
-## Running the whole pipeline
+## Running the whole pipeline with Gene Expression data
 The user can run the whole pipeline by calling `runCATS` function.
 
 ```{r runCATS, eval=TRUE, echo=TRUE, include=TRUE}
@@ -140,6 +140,25 @@ result <- runCATS(signature = signature,
                     DESet = DE_genes,
                     pCut = 0.01)
 ```
+
+## Running the whole pipeline with SummarizedExperiment Data
+CATS supports Bioconductor’s SummarizedExperiment class and can be integrated directly into standard transcriptomics workflows. Gene identifiers should be provided as row names of the assay matrix.
+
+```{r runCATS_SumExp, eval=TRUE, echo=TRUE, include=TRUE}
+sig <- gene_expression[1][1:20,]
+de  <- gene_expression[1][21:60,]
+geneExp_small <- gene_expression[1:200,]
+rownames(geneExp_small) = unlist(gene_expression[1:200,1])
+se <- SummarizedExperiment::SummarizedExperiment( 
+  assays = list(counts = as.matrix(geneExp_small)))
+
+result <- runCATS(signature = sig,
+                  geneExp = se,
+                  PPI = human_PPIN,
+                  DESet = de,
+                  pCut = 0.01)
+```
+
 
 ## Session Info
 ```{r sessionInfo, eval=TRUE, echo=TRUE, include=TRUE}
