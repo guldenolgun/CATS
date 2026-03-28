@@ -1,7 +1,7 @@
 Package: CATS
 Type: Package
 Title: Cancer Specific Transcriptomic Signature (CATS)
-Version: 0.99.0
+Version: 0.99.1
 Authors@R: c(person("Gulden", "Olgun", 
           email = "gulden@cs.bilkent.edu.tr", 
 		  role = c("aut", "cre"),comment = c(ORCID = "0000-0002-4467-1610")), person("Mahfuza", "Sharmin", role = c("ctb")), person("Sridhar", "Hannenhalli", role = c("ctb")))
